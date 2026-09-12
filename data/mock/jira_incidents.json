@@ -1,0 +1,68 @@
+{
+  "incidents": [
+    {
+      "id": "INC-20240315-001",
+      "key": "PAY-9821",
+      "summary": "P1: Payment service 500 errors - complete outage for payment processing",
+      "description": "Production payment service is returning HTTP 500 errors for all payment requests. Customers unable to complete purchases. Revenue impact estimated at $45,000/minute. Alert triggered at 14:03 UTC. On-call SRE paged.\n\nInitial investigation: Errors started approximately 1 minute after the 14:02 UTC deployment of payment-service v2.4.2. CloudWatch logs show DB connection pool exhaustion on postgres-primary.\n\nAffected endpoint: POST /api/v2/payments\nError rate: 94.2%\nP99 latency: 30,247ms",
+      "status": "In Progress",
+      "priority": "P1",
+      "severity": "Critical",
+      "reporter": "monitoring-bot",
+      "assignee": "sarah.chen@company.com",
+      "created": "2024-03-15T14:03:30Z",
+      "updated": "2024-03-15T14:18:00Z",
+      "labels": ["payment", "outage", "database", "production"],
+      "components": ["payment-service", "postgres-primary"],
+      "comments": [
+        {
+          "author": "sarah.chen@company.com",
+          "created": "2024-03-15T14:05:00Z",
+          "body": "Confirmed: All payment requests failing with 500. CloudWatch shows HikariCP pool exhausted (50/50 connections). Deployment at 14:02 likely culprit. Investigating connection pool config changes in v2.4.2 PR."
+        },
+        {
+          "author": "mike.johnson@company.com",
+          "created": "2024-03-15T14:08:00Z",
+          "body": "Found it. PR #1847 increased connection pool max_lifetime from 600000ms to 3600000ms and changed minimum-idle from 10 to 0. With minimum-idle=0, the pool doesn't pre-warm connections. Under load, all 50 connections are acquired simultaneously causing the DB server to hit its max_connections limit of 100 (with 50 already used by read-replica traffic)."
+        },
+        {
+          "author": "sarah.chen@company.com",
+          "created": "2024-03-15T14:12:00Z",
+          "body": "Initiating rollback to v2.4.1. ETA 10 minutes. Also requesting DBA to review postgres-primary connection limits."
+        },
+        {
+          "author": "ops-bot",
+          "created": "2024-03-15T14:22:00Z",
+          "body": "Rollback complete. Payment service v2.4.1 deployed. Error rate back to 0.1%. Incident partially resolved, post-mortem required."
+        }
+      ],
+      "linked_issues": ["PAY-9780", "INFRA-4421"],
+      "affected_customers": 8420,
+      "revenue_impact_usd": 315000
+    },
+    {
+      "id": "INC-20240310-002",
+      "key": "PAY-9780",
+      "summary": "P3: Intermittent payment timeouts during peak hours",
+      "description": "Intermittent timeout errors seen during peak traffic (12:00-14:00 UTC). Error rate stayed below 5%. Connection pool utilization reaching 80-90% during peaks. Not enough to trigger full outage but impacting user experience.",
+      "status": "Resolved",
+      "priority": "P3",
+      "severity": "Minor",
+      "reporter": "sarah.chen@company.com",
+      "assignee": "mike.johnson@company.com",
+      "created": "2024-03-10T14:30:00Z",
+      "updated": "2024-03-12T10:00:00Z",
+      "labels": ["payment", "performance", "database"],
+      "components": ["payment-service", "postgres-primary"],
+      "resolution": "Increased connection pool max-size from 30 to 50. Monitoring shows no more timeouts.",
+      "comments": [
+        {
+          "author": "mike.johnson@company.com",
+          "created": "2024-03-11T09:00:00Z",
+          "body": "Root cause: Connection pool max-size (30) too small for peak traffic. Increasing to 50. PR #1847 in progress."
+        }
+      ]
+    }
+  ]
+}
+

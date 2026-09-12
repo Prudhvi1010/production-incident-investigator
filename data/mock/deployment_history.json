@@ -1,0 +1,75 @@
+{
+  "deployments": [
+    {
+      "id": "deploy-20240315-002",
+      "service": "payment-service",
+      "version": "2.4.2",
+      "previous_version": "2.4.1",
+      "environment": "production",
+      "region": "us-east-1",
+      "status": "rolled_back",
+      "initiated_by": "release-pipeline",
+      "approved_by": "sarah.chen@company.com",
+      "started_at": "2024-03-15T13:52:00Z",
+      "completed_at": "2024-03-15T13:58:00Z",
+      "rollback_at": "2024-03-15T14:15:00Z",
+      "rollback_completed_at": "2024-03-15T14:22:00Z",
+      "strategy": "rolling",
+      "instances": ["i-0abc123def456789a", "i-0bcd234ef567890b", "i-0cde345fg678901c"],
+      "artifacts": {
+        "image": "company/payment-service:2.4.2",
+        "commit_sha": "d4e5f6789012345678901234567890abcde12345",
+        "pull_request": 1847
+      },
+      "config_changes": {
+        "HIKARI_MAX_POOL_SIZE": {"old": "30", "new": "50"},
+        "HIKARI_MIN_IDLE": {"old": "10", "new": "0"},
+        "HIKARI_MAX_LIFETIME": {"old": "600000", "new": "3600000"}
+      },
+      "health_check": {
+        "endpoint": "/actuator/health",
+        "interval_seconds": 10,
+        "threshold": 3,
+        "passed_at_deploy": true,
+        "failed_at": "2024-03-15T14:05:00Z"
+      },
+      "notes": "Rollback triggered due to INC-20240315-001. Connection pool exhaustion 5 minutes after deploy."
+    },
+    {
+      "id": "deploy-20240315-001",
+      "service": "api-gateway",
+      "version": "1.9.5",
+      "previous_version": "1.9.4",
+      "environment": "production",
+      "region": "us-east-1",
+      "status": "successful",
+      "initiated_by": "release-pipeline",
+      "approved_by": "mike.johnson@company.com",
+      "started_at": "2024-03-15T12:00:00Z",
+      "completed_at": "2024-03-15T12:08:00Z",
+      "strategy": "blue-green",
+      "artifacts": {
+        "image": "company/api-gateway:1.9.5",
+        "commit_sha": "e5f6789012345678901234567890abcde123456a"
+      },
+      "health_check": {
+        "passed_at_deploy": true
+      }
+    },
+    {
+      "id": "deploy-20240314-003",
+      "service": "payment-service",
+      "version": "2.4.1",
+      "previous_version": "2.4.0",
+      "environment": "production",
+      "region": "us-east-1",
+      "status": "successful",
+      "initiated_by": "release-pipeline",
+      "approved_by": "alex.torres@company.com",
+      "started_at": "2024-03-14T18:00:00Z",
+      "completed_at": "2024-03-14T18:06:00Z",
+      "strategy": "rolling"
+    }
+  ]
+}
+

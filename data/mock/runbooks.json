@@ -1,0 +1,130 @@
+{
+  "runbooks": [
+    {
+      "id": "RB-PAY-001",
+      "title": "Payment Service Outage Runbook",
+      "service": "payment-service",
+      "version": "3.1",
+      "last_updated": "2024-02-10",
+      "owner": "payments-team",
+      "severity_applicability": ["P1", "P2"],
+      "description": "Step-by-step guide for handling payment service outages in production",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Acknowledge and triage",
+          "actions": [
+            "Acknowledge PagerDuty alert within 5 minutes",
+            "Join #incident-response Slack channel",
+            "Check CloudWatch dashboard: https://console.aws.amazon.com/cloudwatch/payment-service",
+            "Identify error rate, latency p99, and affected endpoints",
+            "Set incident severity in Jira (P1 if error rate > 50%, P2 if > 10%)"
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Identify root cause",
+          "actions": [
+            "Check recent deployments in deployment-history dashboard (last 2 hours)",
+            "Review CloudWatch logs for ERROR messages: `aws logs filter-log-events --log-group /aws/payment-service/application --filter-pattern ERROR`",
+            "Check DB connection pool metrics: CloudWatch > payment-service > hikaricp.connections.active",
+            "Check postgres-primary RDS metrics: DatabaseConnections, FreeStorageSpace, CPUUtilization",
+            "Review GitHub for recent merged PRs in last 24 hours",
+            "Check if error correlates with deployment timestamp"
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Immediate mitigation - DB Connection Pool Exhaustion",
+          "condition": "If CloudWatch shows HikariCP pool exhausted",
+          "actions": [
+            "IMMEDIATE: Initiate rollback of latest deployment if deployed in last 2 hours",
+            "Run: `aws ecs update-service --cluster prod-cluster --service payment-service --force-new-deployment`",
+            "Kill long-running DB queries: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='payments_db' AND state='active' AND query_start < NOW() - INTERVAL '5 minutes';`",
+            "If rollback not possible, temporarily reduce pool size: update SSM parameter /prod/payment-service/HIKARI_MAX_POOL_SIZE to 20",
+            "Scale down payment-service instances to reduce total DB connections: `aws ecs update-service --desired-count 1`"
+          ]
+        },
+        {
+          "step": 4,
+          "title": "Rollback procedure",
+          "actions": [
+            "Identify last stable version from deployment history",
+            "Trigger rollback pipeline: https://jenkins.company.com/payment-service-rollback",
+            "Or manually: `aws ecs update-service --cluster prod-cluster --service payment-service --task-definition payment-service:<PREVIOUS_VERSION>`",
+            "Monitor: Wait 5 minutes, verify error rate drops below 1%",
+            "Verify DB connections normalize: CloudWatch > hikaricp.connections.active < 20"
+          ]
+        },
+        {
+          "step": 5,
+          "title": "Verify recovery",
+          "actions": [
+            "Error rate < 0.5%",
+            "p99 latency < 500ms",
+            "DB connections < 30 (back to normal pool size)",
+            "No new ERROR log entries in last 2 minutes",
+            "Send all-clear to #incident-response"
+          ]
+        },
+        {
+          "step": 6,
+          "title": "Post-incident",
+          "actions": [
+            "Update Jira ticket with timeline and resolution",
+            "Schedule post-mortem within 48 hours",
+            "Create follow-up tickets for permanent fix",
+            "Update this runbook if steps were insufficient"
+          ]
+        }
+      ],
+      "escalation": {
+        "L1": "On-call SRE (PagerDuty)",
+        "L2": "Payments Team Lead (sarah.chen@company.com)",
+        "L3": "VP Engineering (cto@company.com) - P1 only"
+      },
+      "contacts": {
+        "dba": "dba-team@company.com",
+        "aws_support": "Enterprise Support Case",
+        "payments_team_slack": "#payments-engineering"
+      }
+    },
+    {
+      "id": "RB-DB-001",
+      "title": "PostgreSQL Connection Exhaustion Runbook",
+      "service": "postgres-primary",
+      "version": "2.0",
+      "last_updated": "2024-01-15",
+      "owner": "dba-team",
+      "description": "Handling PostgreSQL max_connections limit reached",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Check current connections",
+          "actions": [
+            "Connect to RDS: `psql -h postgres-primary.cluster-xxx.us-east-1.rds.amazonaws.com -U admin -d payments_db`",
+            "Run: `SELECT count(*), state, datname FROM pg_stat_activity GROUP BY state, datname ORDER BY count DESC;`",
+            "Identify which service is consuming most connections"
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Kill idle/blocked connections",
+          "actions": [
+            "Kill idle connections older than 10 minutes: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND query_start < NOW() - INTERVAL '10 minutes';`",
+            "Kill blocked connections: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND query_start < NOW() - INTERVAL '1 minute';`"
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Temporary connection limit increase",
+          "actions": [
+            "Modify RDS parameter group: `aws rds modify-db-parameter-group --db-parameter-group-name prod-pg15 --parameters ParameterName=max_connections,ParameterValue=200,ApplyMethod=pending-reboot`",
+            "Note: Requires DB restart for non-dynamic parameters. Coordinate with team."
+          ]
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,116 @@
+{
+  "alerts": [
+    {
+      "id": "ALT-20240315-001",
+      "name": "PaymentService-HighErrorRate",
+      "service": "payment-service",
+      "metric": "http_5xx_error_rate",
+      "threshold": "error_rate > 5%",
+      "actual_value": "94.2%",
+      "severity": "CRITICAL",
+      "status": "FIRING",
+      "started_at": "2024-03-15T14:03:10Z",
+      "resolved_at": "2024-03-15T14:23:00Z",
+      "pagerduty_incident": "PD-2024-38421",
+      "runbook_url": "https://wiki.company.com/runbooks/RB-PAY-001",
+      "description": "Payment service HTTP 5xx error rate exceeded 5% threshold. Current: 94.2%. Threshold: 5%. Duration: 2 minutes.",
+      "labels": {
+        "service": "payment-service",
+        "environment": "production",
+        "region": "us-east-1",
+        "team": "payments"
+      },
+      "annotations": {
+        "summary": "High error rate on payment-service",
+        "description": "Error rate is 94.2%, well above the 5% SLO threshold"
+      }
+    },
+    {
+      "id": "ALT-20240315-002",
+      "name": "PaymentService-P99LatencyHigh",
+      "service": "payment-service",
+      "metric": "http_request_duration_p99",
+      "threshold": "p99 > 1000ms",
+      "actual_value": "30247ms",
+      "severity": "CRITICAL",
+      "status": "FIRING",
+      "started_at": "2024-03-15T14:03:05Z",
+      "resolved_at": "2024-03-15T14:23:00Z",
+      "pagerduty_incident": "PD-2024-38421",
+      "description": "Payment service P99 latency exceeded 1000ms SLO. Current: 30,247ms (30 seconds). Requests timing out waiting for DB connection.",
+      "labels": {
+        "service": "payment-service",
+        "environment": "production",
+        "region": "us-east-1"
+      }
+    },
+    {
+      "id": "ALT-20240315-003",
+      "name": "HikariCP-PoolExhausted",
+      "service": "payment-service",
+      "metric": "hikaricp_connections_pending",
+      "threshold": "pending_connections > 5",
+      "actual_value": "12",
+      "severity": "CRITICAL",
+      "status": "FIRING",
+      "started_at": "2024-03-15T14:02:50Z",
+      "resolved_at": "2024-03-15T14:22:30Z",
+      "description": "HikariCP connection pool has 12 threads waiting for a connection. Pool is fully exhausted (50/50 active). All new DB operations will timeout after 30s.",
+      "labels": {
+        "service": "payment-service",
+        "pool": "payment-db-pool",
+        "db": "postgres-primary"
+      }
+    },
+    {
+      "id": "ALT-20240315-004",
+      "name": "RDS-HighConnectionCount",
+      "service": "postgres-primary",
+      "metric": "DatabaseConnections",
+      "threshold": "connections > 90",
+      "actual_value": "98",
+      "severity": "WARNING",
+      "status": "FIRING",
+      "started_at": "2024-03-15T14:03:20Z",
+      "resolved_at": "2024-03-15T14:22:45Z",
+      "description": "postgres-primary RDS instance has 98/100 connections active. Approaching max_connections limit. FATAL errors expected when limit is hit.",
+      "labels": {
+        "db": "postgres-primary",
+        "rds_instance": "payment-db.cluster-xxx.us-east-1.rds.amazonaws.com"
+      }
+    },
+    {
+      "id": "ALT-20240315-005",
+      "name": "PaymentService-RevenueImpact",
+      "service": "payment-service",
+      "metric": "payment_success_rate",
+      "threshold": "success_rate < 95%",
+      "actual_value": "5.8%",
+      "severity": "CRITICAL",
+      "status": "RESOLVED",
+      "started_at": "2024-03-15T14:04:00Z",
+      "resolved_at": "2024-03-15T14:23:00Z",
+      "description": "Payment success rate dropped to 5.8%. Estimated revenue impact: $45,000/minute. Total revenue impact during outage: ~$315,000.",
+      "labels": {
+        "service": "payment-service",
+        "business_metric": "true"
+      }
+    }
+  ],
+  "dashboards": [
+    {
+      "name": "Payment Service Overview",
+      "url": "https://cloudwatch.aws.com/dashboards/payment-service",
+      "metrics": [
+        "http_request_rate",
+        "http_5xx_error_rate",
+        "http_request_duration_p50",
+        "http_request_duration_p99",
+        "hikaricp_connections_active",
+        "hikaricp_connections_pending",
+        "payment_success_rate"
+      ]
+    }
+  ]
+}
+

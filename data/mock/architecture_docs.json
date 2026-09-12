@@ -1,0 +1,101 @@
+{
+  "services": [
+    {
+      "name": "payment-service",
+      "description": "Core payment processing service. Handles all payment transactions including credit card, ACH, and digital wallet payments.",
+      "owner": "payments-team",
+      "tier": "T1",
+      "language": "Java 17",
+      "framework": "Spring Boot 3.2",
+      "deployment": "ECS Fargate",
+      "repository": "github.com/company/payment-service",
+      "endpoints": [
+        "POST /api/v2/payments",
+        "GET /api/v2/payments/{id}",
+        "POST /api/v2/refunds"
+      ],
+      "dependencies": [
+        {
+          "service": "postgres-primary",
+          "type": "database",
+          "criticality": "hard",
+          "description": "Primary PostgreSQL 15 instance for all payment transaction storage",
+          "connection_pool": {
+            "library": "HikariCP",
+            "default_max_size": 30,
+            "default_min_idle": 10,
+            "connection_timeout_ms": 30000,
+            "max_lifetime_ms": 600000
+          }
+        },
+        {
+          "service": "redis-payments",
+          "type": "cache",
+          "criticality": "soft",
+          "description": "Redis cache for idempotency keys and session state"
+        },
+        {
+          "service": "fraud-detection-service",
+          "type": "http",
+          "criticality": "soft",
+          "description": "ML-based fraud scoring. Payment proceeds if service unavailable.",
+          "timeout_ms": 500
+        },
+        {
+          "service": "notification-service",
+          "type": "async",
+          "criticality": "soft",
+          "description": "Sends payment confirmation emails/SMS via SQS queue"
+        }
+      ],
+      "slo": {
+        "availability": "99.95%",
+        "p99_latency_ms": 500,
+        "error_rate_pct": 0.1
+      },
+      "scaling": {
+        "min_instances": 3,
+        "max_instances": 20,
+        "target_cpu_pct": 70
+      }
+    },
+    {
+      "name": "postgres-primary",
+      "description": "Primary PostgreSQL 15 RDS instance shared by payment-service and order-service",
+      "tier": "T1",
+      "type": "AWS RDS PostgreSQL 15.4",
+      "instance_type": "db.r6g.2xlarge",
+      "storage_gb": 500,
+      "max_connections": 100,
+      "current_consumers": [
+        {"service": "payment-service", "max_connections": 50, "note": "Increased from 30 in v2.4.2"},
+        {"service": "order-service", "max_connections": 20},
+        {"service": "read-replica-proxy", "max_connections": 20},
+        {"service": "superuser_reserved", "max_connections": 10}
+      ],
+      "note": "Total available: 100 connections. payment-service v2.4.2 increased pool to 50, leaving only 50 for other consumers. At full payment-service load (50 connections) + order-service (20) + replica (20) = 90/100 connections. Adding superuser reserved (10) means system can hit hard limit."
+    },
+    {
+      "name": "api-gateway",
+      "description": "Kong API Gateway. Routes traffic to upstream services. Handles auth, rate limiting.",
+      "tier": "T1",
+      "dependencies": ["payment-service", "order-service", "user-service"]
+    },
+    {
+      "name": "order-service",
+      "description": "Order management service. Creates and tracks customer orders.",
+      "tier": "T1",
+      "dependencies": ["payment-service", "postgres-primary", "inventory-service"]
+    }
+  ],
+  "infrastructure": {
+    "vpc": "vpc-0abc123def456789",
+    "regions": ["us-east-1", "us-west-2"],
+    "cdn": "CloudFront",
+    "load_balancer": "ALB",
+    "container_orchestration": "ECS Fargate",
+    "monitoring": "CloudWatch + Datadog",
+    "alerting": "PagerDuty"
+  }
+}
+

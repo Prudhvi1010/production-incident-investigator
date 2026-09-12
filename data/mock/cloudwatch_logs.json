@@ -1,0 +1,129 @@
+{
+  "log_group": "/aws/payment-service/application",
+  "log_stream": "i-0abc123def456789a",
+  "region": "us-east-1",
+  "events": [
+    {
+      "timestamp": "2024-03-15T13:58:02Z",
+      "level": "INFO",
+      "message": "Payment service deployment completed. Version: 2.4.1 -> 2.4.2",
+      "service": "payment-service",
+      "instance": "i-0abc123def456789a"
+    },
+    {
+      "timestamp": "2024-03-15T14:00:05Z",
+      "level": "INFO",
+      "message": "Service health check passed. DB connections: 12/50",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "pool_size": 50,
+      "active_connections": 12
+    },
+    {
+      "timestamp": "2024-03-15T14:02:11Z",
+      "level": "WARN",
+      "message": "HikariCP connection pool utilization high: 41/50 connections active",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "pool_used": 41,
+      "pool_max": 50
+    },
+    {
+      "timestamp": "2024-03-15T14:02:45Z",
+      "level": "WARN",
+      "message": "Database connection pool near capacity: 47/50 connections in use. Waiting threads: 3",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "pool_used": 47,
+      "pool_max": 50,
+      "waiting_threads": 3
+    },
+    {
+      "timestamp": "2024-03-15T14:03:01Z",
+      "level": "ERROR",
+      "message": "HikariCP - Connection is not available, request timed out after 30000ms. Pool: payment-db-pool Size: 50 Idle: 0 Active: 50 Awaiting: 12",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "error_code": "CONNECTION_POOL_TIMEOUT",
+      "pool_idle": 0,
+      "pool_active": 50,
+      "awaiting": 12
+    },
+    {
+      "timestamp": "2024-03-15T14:03:02Z",
+      "level": "ERROR",
+      "message": "PaymentProcessingException: Unable to process payment for order ORD-84721. Caused by: java.sql.SQLTransientConnectionException: payment-db-pool - Connection is not available",
+      "service": "payment-service",
+      "order_id": "ORD-84721",
+      "user_id": "usr-3829",
+      "error_type": "PaymentProcessingException",
+      "http_status": 500
+    },
+    {
+      "timestamp": "2024-03-15T14:03:05Z",
+      "level": "ERROR",
+      "message": "HTTP 500 Internal Server Error returned for POST /api/v2/payments. Latency: 30247ms",
+      "service": "payment-service",
+      "endpoint": "POST /api/v2/payments",
+      "http_status": 500,
+      "latency_ms": 30247,
+      "trace_id": "abc-def-001"
+    },
+    {
+      "timestamp": "2024-03-15T14:03:10Z",
+      "level": "ERROR",
+      "message": "DB connection pool exhausted. All 50 connections in use. New requests will be queued or rejected.",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "error_code": "POOL_EXHAUSTED"
+    },
+    {
+      "timestamp": "2024-03-15T14:03:15Z",
+      "level": "ERROR",
+      "message": "Circuit breaker for postgres-primary OPENED after 10 consecutive failures",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "circuit_breaker": "postgres-primary",
+      "state": "OPEN",
+      "failure_count": 10
+    },
+    {
+      "timestamp": "2024-03-15T14:04:00Z",
+      "level": "ERROR",
+      "message": "Bulk payment failure: 142 payment requests failed in last 60 seconds. Error rate: 94.2%",
+      "service": "payment-service",
+      "failed_count": 142,
+      "error_rate_pct": 94.2,
+      "window_seconds": 60
+    },
+    {
+      "timestamp": "2024-03-15T14:05:30Z",
+      "level": "ERROR",
+      "message": "postgres-primary: FATAL: remaining connection slots are reserved for non-replication superuser connections",
+      "service": "payment-service",
+      "db": "postgres-primary",
+      "pg_error": "FATAL",
+      "pg_error_code": "53300"
+    },
+    {
+      "timestamp": "2024-03-15T14:15:00Z",
+      "level": "INFO",
+      "message": "Rollback initiated. Reverting payment-service to version 2.4.1",
+      "service": "payment-service",
+      "action": "ROLLBACK",
+      "from_version": "2.4.2",
+      "to_version": "2.4.1"
+    },
+    {
+      "timestamp": "2024-03-15T14:22:00Z",
+      "level": "INFO",
+      "message": "Rollback complete. Service health restored. DB connections: 14/30. Error rate: 0.1%",
+      "service": "payment-service",
+      "action": "ROLLBACK_COMPLETE",
+      "pool_active": 14,
+      "pool_max": 30,
+      "error_rate_pct": 0.1
+    }
+  ]
+}
+

@@ -1,0 +1,89 @@
+{
+  "pull_requests": [
+    {
+      "id": 1847,
+      "number": 1847,
+      "title": "fix(payment): increase DB connection pool size to handle peak traffic",
+      "body": "## Problem\nWe've been seeing intermittent connection pool timeouts during peak traffic (PAY-9780). The current pool size of 30 is insufficient.\n\n## Changes\n- Increased `maximumPoolSize` from 30 to 50\n- Increased `max_lifetime` from 600000ms (10 min) to 3600000ms (60 min) to reduce churn\n- Set `minimumIdle` to 0 (lazy initialization - only create connections when needed)\n- Removed `connectionTimeout` override (using default 30s)\n\n## Testing\n- Load tested locally with k6: 500 rps, 0 errors\n- Staging deployment successful\n\n## Risk\n- Medium: DB connection limit on postgres-primary is 100. With pool size 50 and read-replica also consuming ~40 connections, we may approach the limit under peak load. Recommend monitoring after deploy.",
+      "state": "merged",
+      "author": "mike.johnson@company.com",
+      "reviewer": "sarah.chen@company.com",
+      "base_branch": "main",
+      "head_branch": "fix/connection-pool-increase",
+      "created_at": "2024-03-14T16:00:00Z",
+      "merged_at": "2024-03-15T09:30:00Z",
+      "files_changed": [
+        {
+          "filename": "src/main/resources/application.yml",
+          "additions": 8,
+          "deletions": 5,
+          "diff": "@@ -45,10 +45,13 @@ spring:\n   datasource:\n     hikari:\n-      maximumPoolSize: 30\n+      maximumPoolSize: 50\n-      minimumIdle: 10\n+      minimumIdle: 0\n-      maxLifetime: 600000\n+      maxLifetime: 3600000\n       connectionTimeout: 30000\n       idleTimeout: 600000\n+      # Increased pool size to handle PAY-9780 peak traffic\n+      # minimumIdle=0: lazy connection creation to reduce startup load\n+      # maxLifetime=3600000: longer lifetime to reduce churn"
+        }
+      ],
+      "commits": [
+        {
+          "sha": "a1b2c3d4e5f6789012345678901234567890abcd",
+          "message": "fix(payment): increase HikariCP pool size from 30 to 50",
+          "author": "mike.johnson@company.com",
+          "timestamp": "2024-03-14T16:05:00Z"
+        },
+        {
+          "sha": "b2c3d4e5f6789012345678901234567890abcde1",
+          "message": "fix(payment): set minimumIdle=0 and increase maxLifetime",
+          "author": "mike.johnson@company.com",
+          "timestamp": "2024-03-14T16:45:00Z"
+        }
+      ],
+      "labels": ["bug", "database", "performance"],
+      "jira_ticket": "PAY-9780"
+    },
+    {
+      "id": 1823,
+      "number": 1823,
+      "title": "feat(payment): add payment retry mechanism with exponential backoff",
+      "body": "Adds automatic retry for transient payment failures. Uses exponential backoff with jitter. Max 3 retries.",
+      "state": "merged",
+      "author": "alex.torres@company.com",
+      "reviewer": "mike.johnson@company.com",
+      "base_branch": "main",
+      "head_branch": "feat/payment-retry",
+      "created_at": "2024-03-05T10:00:00Z",
+      "merged_at": "2024-03-07T14:00:00Z",
+      "files_changed": [
+        {
+          "filename": "src/main/java/com/company/payment/PaymentService.java",
+          "additions": 45,
+          "deletions": 12,
+          "diff": "@@ -89,6 +89,51 @@ public class PaymentService {\n+  @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))\n+  public PaymentResult processPayment(PaymentRequest request) {\n+    // ... retry logic\n+  }"
+        }
+      ],
+      "commits": [
+        {
+          "sha": "c3d4e5f6789012345678901234567890abcde123",
+          "message": "feat(payment): implement retry with exponential backoff",
+          "author": "alex.torres@company.com",
+          "timestamp": "2024-03-05T10:30:00Z"
+        }
+      ],
+      "labels": ["enhancement", "reliability"],
+      "jira_ticket": "PAY-9750"
+    }
+  ],
+  "commits": [
+    {
+      "sha": "d4e5f6789012345678901234567890abcde12345",
+      "message": "chore: bump payment-service version to 2.4.2",
+      "author": "release-bot",
+      "timestamp": "2024-03-15T09:45:00Z",
+      "branch": "main"
+    },
+    {
+      "sha": "a1b2c3d4e5f6789012345678901234567890abcd",
+      "message": "fix(payment): increase HikariCP pool size from 30 to 50",
+      "author": "mike.johnson@company.com",
+      "timestamp": "2024-03-14T16:05:00Z",
+      "branch": "main"
+    }
+  ]
+}
+
