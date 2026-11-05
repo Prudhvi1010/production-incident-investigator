@@ -1,6 +1,6 @@
 # 🔍 Production Incident Investigator RAG
 
-A multi-source RAG system for automated production incident investigation. Ingests **7 operational data sources**, retrieves relevant evidence, reranks with Gemini Flash, and generates structured incident reports with Root Cause, Timeline, Evidence, and Fix — powered by **Gemini 2.5 Pro**.
+A multi-source RAG system for automated production incident investigation. Ingests **7 operational data sources**, retrieves relevant evidence, reranks with Gemini Flash, and generates structured incident reports with Root Cause, Timeline, Evidence, and Fix by **Gemini 2.5 Pro**.
 
 ---
 
